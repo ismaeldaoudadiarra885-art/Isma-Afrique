@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISMA Afrique</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    'indigo-deep': {
+                        DEFAULT: '#1A237E',
+                        'dark': '#0f175e',
+                        'light': '#d2d5f0'
+                    },
+                    'ocre-gold': '#F9A825',
+                    'green-tamani': '#388E3C',
+                    'red-earth': '#B71C1C',
+                    'blue-light-ai': '#4FC3F7',
+                    'anthracite-gray': '#212121',
+                    'white-off': '#FAFAFA',
+                },
+            },
+        },
+    }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .scrollbar-thin {
+                scrollbar-width: thin;
+                scrollbar-color: #a0aec0 #edf2f7;
+            }
+            .dark .scrollbar-thin {
+                scrollbar-color: #4a5568 #2d3748;
+            }
+            /* For Webkit browsers */
+            ::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #edf2f7;
+            }
+            .dark ::-webkit-scrollbar-track {
+                background: #2d3748;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #a0aec0;
+                border-radius: 4px;
+            }
+            .dark ::-webkit-scrollbar-thumb {
+                background: #4a5568;
+            }
+            .drag-over-indicator {
+                box-shadow: 0 2px 0 0 #F9A825;
+            }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="antialiased">
+    <div id="root"></div>
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+        "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+        "mammoth": "https://aistudiocdn.com/mammoth@^1.11.0",
+        "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5"
+      }
+    }
+    </script>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
