@@ -1,10 +1,20 @@
+
 import { GoogleGenAI, Type } from '@google/genai';
 import { KoboProject, DataCleaningSuggestion } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-// FIX: Imported getLocalizedText to safely access question labels.
 import { getLocalizedText } from '../utils/localizationUtils';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// FIX: Safely access API Key to prevent 'process is not defined' crash in pure browser environments
+const getApiKey = () => {
+    try {
+        return process.env.API_KEY;
+    } catch (e) {
+        return undefined;
+    }
+};
+
+const apiKey = getApiKey();
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 const model = 'gemini-2.5-flash';
 
 export const suggestDataCleaning = async (project: KoboProject): Promise<DataCleaningSuggestion[]> => {
@@ -14,7 +24,6 @@ export const suggestDataCleaning = async (project: KoboProject): Promise<DataCle
     // Take a sample of up to 50 submissions
     const sample = submissions.slice(-50).map(s => ({ id: s.id, data: s.data }));
 
-    // FIX: Use getLocalizedText to handle LocalizedText union type correctly.
     const defaultLang = formData.settings.default_language || 'default';
     const questionInfo = formData.survey
         .filter(q => q.type === 'text' || q.type === 'integer' || q.type === 'select_one')

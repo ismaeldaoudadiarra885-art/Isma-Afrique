@@ -1,130 +1,177 @@
-// FIX: Created full content for formAgentFunctions.ts to resolve module errors.
-import { FunctionDeclaration, Type } from "@google/genai";
-
-export const getFormAgentFunctions = (): FunctionDeclaration[] => [
+export const getFormAgentFunctions = () => [
     {
         name: 'addQuestion',
-        description: "Ajoute une nouvelle question au formulaire. Doit avoir un nom unique.",
+        description: "Ajoute UNE seule question. Utiliser si l'utilisateur demande d'ajouter un champ spécifique.",
         parameters: {
-            type: Type.OBJECT,
+            type: "object",
             properties: {
-                type: { type: Type.STRING, description: "Le type de question (ex: text, integer, select_one)." },
-                name: { type: Type.STRING, description: "Le nom unique de la variable (court, en minuscules, sans espaces)." },
-                label: { type: Type.STRING, description: "Le libellé complet de la question." },
-                required: { type: Type.BOOLEAN, description: "La question est-elle obligatoire ?" },
+                type: { type: "string", description: "Type XLSForm : text, integer, decimal, select_one, select_multiple, image, geopoint, date, signature, audio, begin_group, end_group, note." },
+                name: { type: "string", description: "Nom de variable unique en snake_case (ex: age_chef)." },
+                label: { type: "string", description: "Le libellé de la question." },
+                required: { type: "boolean", description: "Est-ce obligatoire ?" },
                 choices: {
-                    type: Type.ARRAY,
-                    description: "Pour les questions select_one/select_multiple, la liste des choix.",
+                    type: "array",
+                    description: "Liste des choix pour select_one/multiple.",
                     items: {
-                        type: Type.OBJECT,
+                        type: "object",
                         properties: {
-                            name: { type: Type.STRING, description: "La valeur stockée pour le choix." },
-                            label: { type: Type.STRING, description: "Le texte affiché pour le choix." },
+                            name: { type: "string" },
+                            label: { type: "string" },
                         }
                     }
                 },
-                hint: { type: Type.STRING, description: "Un texte d'aide optionnel pour la question." }
+                hint: { type: "string", description: "Texte d'aide." },
+                relevant: { type: "string", description: "Logique d'affichage XLSForm (ex: ${q1} = 'oui')." },
+                constraint: { type: "string", description: "Validation XLSForm (ex: . > 18)." }
             },
             required: ["type", "name", "label"]
         }
     },
     {
-        name: 'deleteQuestion',
-        description: "Supprime une question existante du formulaire en utilisant son nom de variable.",
+        name: 'addQuestionsBatch',
+        description: "CRITIQUE: Ajoute PLUSIEURS questions d'un coup. À UTILISER DÈS QUE L'UTILISATEUR DEMANDE DE CRÉER UN FORMULAIRE, UNE SECTION OU PLUSIEURS CHAMPS.",
         parameters: {
-            type: Type.OBJECT,
+            type: "object",
             properties: {
-                questionName: { type: Type.STRING, description: "Le nom de la variable de la question à supprimer." }
+                questions: {
+                    type: "array",
+                    description: "Liste des questions à ajouter.",
+                    items: {
+                        type: "object",
+                        properties: {
+                            type: { type: "string" },
+                            name: { type: "string" },
+                            label: { type: "string" },
+                            required: { type: "boolean" },
+                            hint: { type: "string" },
+                            relevant: { type: "string" },
+                            constraint: { type: "string" },
+                            calculation: { type: "string" },
+                            choices: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        name: { type: "string" },
+                                        label: { type: "string" },
+                                    }
+                                }
+                            },
+                        },
+                        required: ["type", "name", "label"]
+                    }
+                }
+            },
+            required: ["questions"]
+        }
+    },
+    {
+        name: 'createGroup',
+        description: "Regroupe une série de questions existantes dans un groupe (begin_group/end_group).",
+        parameters: {
+            type: "object",
+            properties: {
+                startQuestionName: { type: "string", description: "Nom de la première question à inclure dans le groupe." },
+                endQuestionName: { type: "string", description: "Nom de la dernière question à inclure (peut être la même que start)." },
+                groupLabel: { type: "string", description: "Titre du groupe (ex: 'Informations Démographiques')." },
+                groupName: { type: "string", description: "Nom de variable du groupe (snake_case)." }
+            },
+            required: ["startQuestionName", "endQuestionName", "groupLabel"]
+        }
+    },
+    {
+        name: 'cloneQuestion',
+        description: "Duplique une question existante (utile pour les répétitions : enfant 1, enfant 2...).",
+        parameters: {
+            type: "object",
+            properties: {
+                sourceQuestionName: { type: "string", description: "Nom de la question à copier." },
+                newLabel: { type: "string", description: "Nouveau libellé." },
+                newName: { type: "string", description: "Nouveau nom de variable." }
+            },
+            required: ["sourceQuestionName"]
+        }
+    },
+    {
+        name: 'deleteQuestion',
+        description: "Supprime une question via son nom de variable (name).",
+        parameters: {
+            type: "object",
+            properties: {
+                questionName: { type: "string" }
             },
             required: ["questionName"]
         }
     },
     {
         name: 'updateQuestion',
-        description: "Modifie les propriétés d'une question existante.",
+        description: "Modifie une question existante. UTILISER POUR : Changer le type, ajouter une logique (relevant), rendre obligatoire, ajouter des choix, changer le libellé.",
         parameters: {
-            type: Type.OBJECT,
+            type: "object",
             properties: {
-                questionName: { type: Type.STRING, description: "Le nom de la variable de la question à modifier." },
-                label: { type: Type.STRING, description: "Le nouveau libellé de la question." },
-                hint: { type: Type.STRING, description: "Le nouveau texte d'aide." },
-                required: { type: Type.BOOLEAN, description: "La question est-elle obligatoire ?" },
-                relevant: { type: Type.STRING, description: "La nouvelle logique de pertinence (XLSForm)." },
-                constraint: { type: Type.STRING, description: "La nouvelle contrainte de validation (XLSForm)." },
-                constraint_message: { type: Type.STRING, description: "Le message d'erreur pour la contrainte." },
+                questionName: { type: "string", description: "Nom ACTUEL de la question à modifier" },
+                type: { type: "string", description: "Nouveau type (ex: select_one, integer)" },
+                name: { type: "string", description: "Renommer la variable (Nouveau nom)" },
+                label: { type: "string" },
+                hint: { type: "string" },
+                required: { type: "boolean" },
+                relevant: { type: "string", description: "Logique d'affichage (ex: ${q1} = 'oui')" },
+                constraint: { type: "string", description: "Validation (ex: . >= 18)" },
+                constraint_message: { type: "string" },
+                calculation: { type: "string" },
+                appearance: { type: "string", description: "Style (minimal, horizontal, multiline, thousands-sep)" },
+                choices: {
+                    type: "array",
+                    description: "Remplacer les choix existants.",
+                    items: {
+                        type: "object",
+                        properties: {
+                            name: { type: "string" },
+                            label: { type: "string" },
+                        }
+                    }
+                },
+                choice_filter: { type: "string", description: "Filtre de choix pour les cascades (ex: region=${region_select})." }
             },
             required: ["questionName"]
         }
     },
     {
         name: 'reorderQuestion',
-        description: "Change l'ordre d'une question dans le formulaire.",
+        description: "Change l'ordre d'une question.",
         parameters: {
-            type: Type.OBJECT,
+            type: "object",
             properties: {
-                questionNameToMove: { type: Type.STRING, description: "Le nom de la question à déplacer." },
-                targetQuestionName: { type: Type.STRING, description: "Le nom de la question de référence." },
-                position: { type: Type.STRING, description: "Placer 'before' (avant) ou 'after' (après) la question cible." }
+                questionNameToMove: { type: "string" },
+                targetQuestionName: { type: "string" },
+                position: { type: "string", description: "'before' ou 'after'" }
             },
             required: ["questionNameToMove", "targetQuestionName", "position"]
         }
     },
     {
-        name: 'batchUpdateQuestions',
-        description: "Met à jour plusieurs questions en une seule fois. Utile pour des modifications complexes comme l'ajout de logiques.",
+        name: 'updateProjectSettings',
+        description: "Change les paramètres globaux du projet (Titre, ID formulaire).",
         parameters: {
-            type: Type.OBJECT,
+            type: "object",
+            properties: {
+                form_title: { type: "string" },
+                form_id: { type: "string" }
+            }
+        }
+    },
+    {
+        name: 'batchUpdateQuestions',
+        description: "Exécute plusieurs mises à jour simultanément (Modifications seulement).",
+        parameters: {
+            type: "object",
             properties: {
                 updatesJson: {
-                    type: Type.STRING,
-                    description: "Une chaîne JSON représentant un tableau d'objets. Chaque objet doit contenir 'questionName' et un objet 'updates' avec les champs à modifier (ex: { label: 'nouveau', required: true })."
+                    type: "string",
+                    description: "Tableau JSON d'objets avec 'questionName' et 'updates'."
                 }
             },
             required: ["updatesJson"]
-        }
-    },
-    {
-        name: 'createQuestionGroup',
-        description: "Crée un groupe de questions pour organiser le formulaire.",
-        parameters: {
-            type: Type.OBJECT,
-            properties: {
-                groupName: { type: Type.STRING, description: "Le nom unique du groupe." },
-                groupLabel: { type: Type.STRING, description: "Le libellé affiché du groupe." },
-                questions: {
-                    type: Type.ARRAY,
-                    description: "Liste des noms de variables des questions à inclure dans le groupe.",
-                    items: { type: Type.STRING }
-                }
-            },
-            required: ["groupName", "groupLabel", "questions"]
-        }
-    },
-    {
-        name: 'addCalculatedField',
-        description: "Ajoute un champ calculé basé sur d'autres questions.",
-        parameters: {
-            type: Type.OBJECT,
-            properties: {
-                questionName: { type: Type.STRING, description: "Le nom unique du champ calculé." },
-                label: { type: Type.STRING, description: "Le libellé du champ calculé." },
-                calculation: { type: Type.STRING, description: "La formule de calcul (XLSForm)." }
-            },
-            required: ["questionName", "label", "calculation"]
-        }
-    },
-    {
-        name: 'setQuestionConditions',
-        description: "Définit les conditions de pertinence et contraintes pour une question.",
-        parameters: {
-            type: Type.OBJECT,
-            properties: {
-                questionName: { type: Type.STRING, description: "Le nom de la question." },
-                relevant: { type: Type.STRING, description: "Condition de pertinence (XLSForm)." },
-                constraint: { type: Type.STRING, description: "Contrainte de validation (XLSForm)." },
-                constraintMessage: { type: Type.STRING, description: "Message d'erreur pour la contrainte." }
-            },
-            required: ["questionName"]
         }
     }
 ];

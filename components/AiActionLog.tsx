@@ -1,4 +1,5 @@
 import React from 'react';
+// FIX: Corrected import path
 import { useProject } from '../contexts/ProjectContext';
 import { useLanguage } from '../hooks/useTranslation';
 
@@ -39,12 +40,10 @@ const AuditLog: React.FC = () => {
         <div className="p-4 flex flex-col h-full">
             <div className="flex justify-between items-center mb-3">
                  <h3 className="text-lg font-semibold">Journal d'Audit</h3>
-                 <button
-                    id="btnExportAuditLog"
+                 <button 
                     onClick={handleExport}
                     disabled={auditLog.length === 0}
                     className="px-3 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
-                    aria-label="Exporter le journal d'audit au format CSV"
                  >
                     {t('auditLog_export')}
                  </button>

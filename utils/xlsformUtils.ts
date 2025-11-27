@@ -53,9 +53,6 @@ export const generateXlsxBlob = (project: KoboProject): Blob => {
                     name: c.name,
                     label: getLocalizedText(c.label, defaultLang),
                 };
-                 if (c.image) {
-                    choiceRow.image = c.image;
-                 }
                  otherLangs.forEach(lang => {
                     const label = getLocalizedText(c.label, lang);
                     if (label) choiceRow[`label::${lang}`] = label;

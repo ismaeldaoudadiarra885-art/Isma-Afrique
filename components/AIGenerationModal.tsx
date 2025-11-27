@@ -14,11 +14,10 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({ isOpen, onClose }
     const { createProject } = useProject();
     const { addNotification } = useNotification();
     const { t } = useLanguage();
-
+    
     const [projectName, setProjectName] = useState('');
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [advancedMode, setAdvancedMode] = useState(false);
 
     if (!isOpen) return null;
 
@@ -31,29 +30,11 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({ isOpen, onClose }
         addNotification(t('notification_aiGenerationStart'), 'info');
         try {
             const formData = await generateFormFromPrompt(prompt, projectName);
-            console.log('FormData généré par IA avancée (survey length):', formData.survey.length, formData.survey);
-
-            // Validation supplémentaire
-            if (formData.survey.length < 3) {
-                addNotification('Formulaire généré avec peu de questions. Vous pouvez l\'enrichir dans le mode concepteur.', 'warning');
-            }
-
             createProject(projectName, formData);
-            console.log('Projet IA avancé créé et actif set');
             addNotification(t('notification_aiGenerationSuccess'), 'success');
-
-            // Statistiques du formulaire généré
-            const questionTypes = formData.survey.reduce((acc, q) => {
-                acc[q.type] = (acc[q.type] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-            addNotification(`Formulaire créé avec ${formData.survey.length} questions (${Object.entries(questionTypes).map(([type, count]) => `${count} ${type}`).join(', ')})`, 'info');
-
             onClose();
         } catch (error: any) {
-            console.error('Erreur génération IA avancée:', error);
-            addNotification(error.message || 'Erreur lors de la génération du formulaire', 'error');
+            addNotification(error.message, 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -84,12 +65,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = ({ isOpen, onClose }
                         <textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} rows={5} placeholder={t('aiGenerationModal_promptPlaceholder')} className={inputClass} />
                     </div>
                 </main>
-                <footer className="p-4 flex justify-between items-center border-t dark:border-gray-700">
-                    <div className="text-xs text-gray-500">
-                        {advancedMode && (
-                            <span>⚡ Mode IA avancé activé - Génération optimisée</span>
-                        )}
-                    </div>
+                <footer className="p-4 flex justify-end border-t dark:border-gray-700">
                      <button onClick={handleGenerate} disabled={isGenerating} className="px-4 py-2 text-sm font-medium text-white bg-indigo-deep rounded-md hover:bg-indigo-deep-dark disabled:opacity-50">
                         {isGenerating ? t('aiGenerationModal_generatingButton') : t('aiGenerationModal_generateButton')}
                     </button>

@@ -2,9 +2,20 @@
 <html lang="fr" class="">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ISMA Afrique</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4338ca">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ISMA">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2083/2083260.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
     tailwind.config = {
         darkMode: 'class',
@@ -23,6 +34,32 @@
                     'anthracite-gray': '#212121',
                     'white-off': '#FAFAFA',
                 },
+                animation: {
+                    'scan': 'scan 2s linear infinite',
+                    'fadeIn': 'fadeIn 0.5s ease-out',
+                    'slideIn': 'slideIn 0.3s ease-out',
+                    'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                },
+                keyframes: {
+                    scan: {
+                        '0%': { transform: 'translateY(0)' },
+                        '100%': { transform: 'translateY(100%)' },
+                    },
+                    fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(10px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' },
+                    },
+                    slideIn: {
+                        '0%': { transform: 'translateX(100%)' },
+                        '100%': { transform: 'translateX(0)' },
+                    },
+                    shake: {
+                        '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                        '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                        '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                        '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                    }
+                }
             },
         },
     }
@@ -57,26 +94,16 @@
             .drag-over-indicator {
                 box-shadow: 0 2px 0 0 #F9A825;
             }
+            /* Mobile Optimizations */
+            .safe-area-bottom {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
         }
     </style>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="antialiased">
+<body class="antialiased overscroll-none select-none">
     <div id="root"></div>
-    
-    <script type="importmap">
-    {
-      "imports": {
-        "react/": "https://aistudiocdn.com/react@^19.2.0/",
-        "react": "https://aistudiocdn.com/react@^19.2.0",
-        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
-        "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-        "mammoth": "https://aistudiocdn.com/mammoth@^1.11.0",
-        "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5"
-      }
-    }
-    </script>
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+
 // FIX: Created full content for types.ts to provide all necessary type definitions.
 import { Content } from '@google/genai';
 
@@ -7,7 +8,6 @@ export interface KoboChoice {
     uid: string;
     name: string;
     label: LocalizedText;
-    image?: string; // For image choices in select_one/select_multiple questions
 }
 
 export interface KoboQuestion {
@@ -21,10 +21,9 @@ export interface KoboQuestion {
     constraint?: string;
     constraint_message?: LocalizedText;
     calculation?: string;
-    appearance?: string;
-    list_name?: string;
-    choice_filter?: string;
     choices?: KoboChoice[];
+    children?: KoboQuestion[]; // Pour les groupes répétitifs ou groupes imbriqués
+    appearance?: string; // Style d'affichage (minimal, horizontal, signature, etc.)
 }
 
 export interface KoboSettings {
@@ -67,64 +66,44 @@ export interface GlossaryEntry {
     user_annotation?: string;
 }
 
+// NOUVEAU : Métadonnées de sécurité pour chaque soumission
+export interface SubmissionMetadata {
+    agentId: string;        // Code unique de l'agent (ex: M-839)
+    agentName: string;      // Nom lisible (ex: Moussa Diarra)
+    agentCode: string;      // Redondance pour affichage rapide
+    finalizedAt?: string;   // Date exacte du scellement
+    locationAtFinalization?: string; // Coordonnées GPS au moment du scellement (si dispo)
+    digitalSignature?: string; // Hash cryptographique du contenu (SHA-256)
+}
+
+// NOUVEAU : Données de supervision (Contrôle Qualité)
+export interface ReviewData {
+    status: 'pending' | 'approved' | 'rejected' | 'flagged';
+    reviewerName?: string;
+    reviewerNote?: string;
+    reviewedAt?: string;
+}
+
 export interface Submission {
     id: string;
     timestamp: string;
     data: FormValues;
-    meta?: {
-        device_id?: string;
-        gps?: { lat: number; lng: number };
-    };
-    status: 'draft' | 'synced' | 'modified' | 'error' | 'queued';
-    validationStatus?: 'pending' | 'validated' | 'rejected' | 'auto_flagged';
-    validatedBy?: string;
-    validationTimestamp?: string;
+    status: 'draft' | 'finalized' | 'synced' | 'modified' | 'error';
+    metadata?: SubmissionMetadata; // Ajout des métadonnées d'attribution
+    review?: ReviewData; // Ajout des données de supervision
 }
 
-export type UserRole = 'admin' | 'project_manager' | 'enumerator' | 'supervisor' | 'super_admin';
+export type UserRole = 'admin' | 'project_manager' | 'enumerator';
 
 export interface ManagedUser {
     id: string;
-    name: string;
+    name: string; // Nom complet (concaténation ou display name)
+    firstName?: string; // Nouveau : Prénom
+    lastName?: string;  // Nouveau : Nom
+    organization?: string; // Nouveau : Structure
+    email?: string;
     role: UserRole;
     accessCode: string;
-}
-
-// Enhanced organization types
-export interface Organization {
-    id: string;
-    name: string;
-    description?: string;
-    admin_email: string;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    settings: {
-        max_projects: number;
-        max_users: number;
-        features_enabled: string[];
-    };
-}
-
-export interface OrganizationUser {
-    id: string;
-    organization_id: string;
-    user_id: string;
-    name?: string;
-    email?: string;
-    role: 'admin' | 'project_manager' | 'enumerator' | 'supervisor';
-    access_code: string;
-    is_active: boolean;
-    created_at: string;
-    last_login?: string;
-    created_by?: string;
-}
-
-export interface PerformanceMetrics {
-    enumeratorId: string;
-    submissionCount: number;
-    errorRate: number;
-    avgCompletionTime?: number;
 }
 
 export interface QuestionModule {
@@ -166,28 +145,13 @@ export interface KoboProject {
     simulationProfile?: SimulationProfile | null;
     isRealtimeCoachEnabled: boolean;
     realtimeFeedback: { [questionName: string]: { message: string, status: 'info' | 'warning' } };
-
-    // Institutional branding
-    institutionalBranding?: {
-        logo?: string;
-        institutionName?: string;
-        ministerialCode?: string;
-        partnerInfo?: string;
-    };
-
-    // Regional settings
-    regionalSettings?: {
-        region?: string;
-        culturalContext?: string;
-        localTerms?: string[];
-    };
 }
 
 export type FormValues = {
     [key: string]: any;
 };
 
-export type AiRole = 'agent_technique' | 'analyste_donnees' | 'architecte_formulaire' | 'auditeur_conformite' | 'mediateur_culturel' | 'assistant_pedagogique' | 'traduc_local' | 'auditeur_securite' | 'integrateur_systeme' | 'optimisateur_performance' | 'specialiste_culturel_malien' | 'testeur_automatique';
+export type AiRole = 'agent_technique' | 'analyste_donnees' | 'architecte_formulaire' | 'auditeur_conformite' | 'mediateur_culturel' | 'assistant_pedagogique' | 'traduc_local';
 
 export interface AiRoleInfo {
     id: AiRole;

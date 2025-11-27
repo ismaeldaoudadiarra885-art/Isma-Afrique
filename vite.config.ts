@@ -1,37 +1,21 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: {
-              vendor: ['react', 'react-dom'],
-              recharts: ['recharts'],
-              supabase: ['@supabase/supabase-js'],
-              mammoth: ['mammoth'],
-              lodash: ['lodash']
-            }
-          }
-        },
-        chunkSizeWarningLimit: 1000
-      }
-    };
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    // Optimisation pour les petits appareils
+    target: 'esnext',
+  },
+  server: {
+    port: 3000,
+  },
+  // Gestion des variables d'environnement pour éviter les crashs
+  define: {
+    'process.env': process.env
+  }
 });

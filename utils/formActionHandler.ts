@@ -1,5 +1,5 @@
-// FIX: Created full content for formActionHandler.ts to resolve module errors.
-import { FunctionCall } from "@google/genai";
+
+import { FunctionCall } from "@google/generative-ai";
 import { useProject } from "../contexts/ProjectContext";
 import { KoboProject, KoboQuestion } from "../types";
 import { v4 as uuidv4 } from 'uuid';
@@ -24,14 +24,7 @@ export const handleFunctionCalls = async (
         try {
             switch (name) {
                 case 'addQuestion': {
-                    const { type, name, label, required, choices, hint } = args as {
-                        type: string;
-                        name: string;
-                        label: string;
-                        required?: boolean;
-                        choices?: { name: string; label: string }[];
-                        hint?: string;
-                    };
+                    const { type, name, label, required, choices, hint, relevant, constraint, calculation } = args;
                     const newQuestion: KoboQuestion = {
                         uid: uuidv4(),
                         type,
@@ -39,6 +32,9 @@ export const handleFunctionCalls = async (
                         label: { fr: label },
                         required,
                         hint: hint ? { fr: hint } : undefined,
+                        relevant,
+                        constraint,
+                        calculation,
                         choices: choices?.map((c: { name: string, label: string }) => ({
                             ...c,
                             uid: uuidv4(),
@@ -51,8 +47,34 @@ export const handleFunctionCalls = async (
                     break;
                 }
 
+                case 'addQuestionsBatch': {
+                    const { questions } = args;
+                    if (Array.isArray(questions)) {
+                        const newQuestions: KoboQuestion[] = questions.map((q: any) => ({
+                            uid: uuidv4(),
+                            type: q.type,
+                            name: q.name,
+                            label: { fr: q.label },
+                            required: q.required,
+                            hint: q.hint ? { fr: q.hint } : undefined,
+                            relevant: q.relevant,
+                            constraint: q.constraint,
+                            calculation: q.calculation,
+                            choices: q.choices?.map((c: { name: string, label: string }) => ({
+                                ...c,
+                                uid: uuidv4(),
+                                label: { fr: c.label }
+                            }))
+                        }));
+                        projectContext.addQuestionsBatch(newQuestions);
+                        projectContext.logAction('addQuestionsBatch', { count: newQuestions.length }, 'ai');
+                        confirmationMessages.push(`${newQuestions.length} questions ajoutées en une seule fois.`);
+                    }
+                    break;
+                }
+                
                 case 'deleteQuestion': {
-                    const { questionName } = args as { questionName: string };
+                    const { questionName } = args;
                     projectContext.deleteQuestion(questionName);
                     projectContext.logAction('deleteQuestion', { questionName }, 'ai');
                     confirmationMessages.push(`Question "${questionName}" supprimée.`);
@@ -60,43 +82,127 @@ export const handleFunctionCalls = async (
                 }
 
                 case 'updateQuestion': {
-                    const { questionName, ...updates } = args as {
-                        questionName: string;
-                        label?: string;
-                        hint?: string;
-                        constraint_message?: string;
-                        required?: boolean;
-                        relevant?: string;
-                        constraint?: string;
-                    };
-                    const formattedUpdates: Partial<KoboQuestion> = {};
-                    if(updates.label) formattedUpdates.label = { fr: updates.label };
-                    if(updates.hint) formattedUpdates.hint = { fr: updates.hint };
-                    if(updates.constraint_message) formattedUpdates.constraint_message = { fr: updates.constraint_message };
+                    const { questionName, choices, ...updates } = args;
+                    const formattedUpdates: any = {}; // Use any to allow dynamic property assignment
+                    
+                    // Mapping direct des champs simples
+                    if(updates.type) formattedUpdates.type = updates.type;
+                    if(updates.name) formattedUpdates.name = updates.name; // Renommage
                     if(updates.required !== undefined) formattedUpdates.required = updates.required;
                     if(updates.relevant) formattedUpdates.relevant = updates.relevant;
                     if(updates.constraint) formattedUpdates.constraint = updates.constraint;
+                    if(updates.calculation) formattedUpdates.calculation = updates.calculation;
+                    if(updates.appearance) formattedUpdates.appearance = updates.appearance;
+                    if(updates.choice_filter) formattedUpdates.choice_filter = updates.choice_filter; // New: Cascading selects
+
+                    // Mapping des champs localisés
+                    if(updates.label) formattedUpdates.label = { fr: updates.label };
+                    if(updates.hint) formattedUpdates.hint = { fr: updates.hint };
+                    if(updates.constraint_message) formattedUpdates.constraint_message = { fr: updates.constraint_message };
+                    
+                    // Mapping des choix (remplacement complet)
+                    if (choices && Array.isArray(choices)) {
+                        formattedUpdates.choices = choices.map((c: { name: string, label: string }) => ({
+                            uid: uuidv4(),
+                            name: c.name,
+                            label: { fr: c.label }
+                        }));
+                    }
 
                     projectContext.updateQuestion(questionName, formattedUpdates);
                     projectContext.logAction('updateQuestion', { questionName, updates: formattedUpdates }, 'ai');
-                    confirmationMessages.push(`Question "${questionName}" mise à jour.`);
+                    
+                    let msg = `Question "${questionName}" modifiée.`;
+                    if (updates.relevant) msg += ` (Logique ajoutée)`;
+                    if (updates.constraint) msg += ` (Validation ajoutée)`;
+                    if (choices) msg += ` (Choix mis à jour)`;
+                    
+                    confirmationMessages.push(msg);
+                    break;
+                }
+                
+                case 'createGroup': {
+                    const { startQuestionName, endQuestionName, groupLabel, groupName } = args;
+                    
+                    // Logic to find questions and wrap them
+                    const startQ = project.formData.survey.find(q => q.name === startQuestionName);
+                    
+                    if (startQ) {
+                        const gName = groupName || `grp_${Math.random().toString(36).substr(2, 5)}`;
+                        
+                        const beginGroup: KoboQuestion = {
+                            uid: uuidv4(),
+                            type: 'begin_group',
+                            name: gName,
+                            label: { fr: groupLabel },
+                        };
+                        
+                        const endGroup: KoboQuestion = {
+                            uid: uuidv4(),
+                            type: 'end_group',
+                            name: `${gName}_end`,
+                            label: {},
+                        };
+
+                        // Insert begin_group BEFORE startQuestion
+                        projectContext.addQuestion(beginGroup, startQuestionName, 'before');
+                        
+                        // Insert end_group AFTER endQuestion (or startQuestion if single)
+                        const targetEnd = endQuestionName || startQuestionName;
+                        // Small delay to ensure order if inserting rapidly, or better: handling batch insertion in context
+                        // For now, sequential add works because 'addQuestion' modifies state immediately in our context implementation
+                        projectContext.addQuestion(endGroup, targetEnd, 'after');
+                        
+                        projectContext.logAction('createGroup', { groupLabel }, 'ai');
+                        confirmationMessages.push(`Groupe "${groupLabel}" créé autour des questions.`);
+                    } else {
+                        confirmationMessages.push(`Erreur: Question de départ "${startQuestionName}" introuvable.`);
+                    }
                     break;
                 }
 
+                case 'cloneQuestion': {
+                    const { sourceQuestionName, newLabel, newName } = args;
+                    const sourceQ = project.formData.survey.find(q => q.name === sourceQuestionName);
+                    
+                    if (sourceQ) {
+                        const clonedQ: KoboQuestion = {
+                            ...sourceQ,
+                            uid: uuidv4(),
+                            name: newName || `${sourceQ.name}_copy`,
+                            label: { fr: newLabel || `${(sourceQ.label as any).fr} (Copie)` },
+                            choices: sourceQ.choices?.map(c => ({...c, uid: uuidv4()}))
+                        };
+                        
+                        projectContext.addQuestion(clonedQ, sourceQuestionName, 'after');
+                        projectContext.logAction('cloneQuestion', { source: sourceQuestionName }, 'ai');
+                        confirmationMessages.push(`Question "${sourceQuestionName}" dupliquée.`);
+                    }
+                    break;
+                }
+                
                 case 'reorderQuestion': {
-                     const { questionNameToMove, targetQuestionName, position } = args as {
-                         questionNameToMove: string;
-                         targetQuestionName: string;
-                         position: string;
-                     };
+                     const { questionNameToMove, targetQuestionName, position } = args;
                      projectContext.reorderQuestion(questionNameToMove, targetQuestionName, position);
                      projectContext.logAction('reorderQuestion', { questionNameToMove, targetQuestionName, position }, 'ai');
                      confirmationMessages.push(`Question "${questionNameToMove}" déplacée.`);
                      break;
                 }
 
+                case 'updateProjectSettings': {
+                    const { form_title, form_id } = args;
+                    const newSettings = { ...project.formData.settings };
+                    if (form_title) newSettings.form_title = form_title;
+                    if (form_id) newSettings.form_id = form_id;
+                    
+                    projectContext.updateProjectSettings(newSettings);
+                    projectContext.logAction('updateProjectSettings', { form_title, form_id }, 'ai');
+                    confirmationMessages.push(`Paramètres du projet mis à jour.`);
+                    break;
+                }
+
                 case 'batchUpdateQuestions': {
-                    const { updatesJson } = args as { updatesJson: string };
+                    const { updatesJson } = args;
                     try {
                         const updates = JSON.parse(updatesJson);
                         projectContext.batchUpdateQuestions(updates);
@@ -107,123 +213,7 @@ export const handleFunctionCalls = async (
                     }
                     break;
                 }
-
-                case 'addSkipLogic': {
-                    const { questionName, skipCondition } = args as { questionName: string; skipCondition: string };
-                    projectContext.updateQuestion(questionName, { relevant: skipCondition });
-                    projectContext.logAction('addSkipLogic', { questionName, skipCondition }, 'ai');
-                    confirmationMessages.push(`Logique de saut ajoutée à "${questionName}".`);
-                    break;
-                }
-
-                case 'addBranching': {
-                    const { condition, targetQuestions } = args as { condition: string; targetQuestions: string[] };
-                    // Créer un groupe avec logique conditionnelle
-                    const groupQuestion = {
-                        uid: uuidv4(),
-                        type: 'begin_group',
-                        name: `group_${Date.now()}`,
-                        label: { fr: 'Groupe conditionnel' },
-                        relevant: condition
-                    };
-                    projectContext.addQuestion(groupQuestion);
-
-                    // Ajouter les questions cibles dans le groupe
-                    targetQuestions.forEach(qName => {
-                        // Trouver la question existante et la déplacer
-                        const existingQuestion = project.formData.survey.find(q => q.name === qName);
-                        if (existingQuestion) {
-                            projectContext.deleteQuestion(qName);
-                            projectContext.addQuestion(existingQuestion, groupQuestion.name);
-                        }
-                    });
-
-                    projectContext.logAction('addBranching', { condition, targetQuestions }, 'ai');
-                    confirmationMessages.push(`Embranchement conditionnel créé avec ${targetQuestions.length} questions.`);
-                    break;
-                }
-
-                case 'setQuestionConditions': {
-                    const { questionName, relevant, constraint, constraintMessage } = args as {
-                        questionName: string;
-                        relevant?: string;
-                        constraint?: string;
-                        constraintMessage?: string;
-                    };
-                    const updates: Partial<KoboQuestion> = {};
-                    if (relevant) updates.relevant = relevant;
-                    if (constraint) updates.constraint = constraint;
-                    if (constraintMessage) updates.constraint_message = { fr: constraintMessage };
-
-                    projectContext.updateQuestion(questionName, updates);
-                    projectContext.logAction('setQuestionConditions', { questionName, ...updates }, 'ai');
-                    confirmationMessages.push(`Conditions appliquées à "${questionName}".`);
-                    break;
-                }
-
-                case 'createQuestionGroup': {
-                    const { groupName, groupLabel, questions } = args as {
-                        groupName: string;
-                        groupLabel: string;
-                        questions: string[];
-                    };
-                    const groupQuestion = {
-                        uid: uuidv4(),
-                        type: 'begin_group',
-                        name: groupName,
-                        label: { fr: groupLabel }
-                    };
-                    projectContext.addQuestion(groupQuestion);
-
-                    questions.forEach(qName => {
-                        const existingQuestion = project.formData.survey.find(q => q.name === qName);
-                        if (existingQuestion) {
-                            projectContext.deleteQuestion(qName);
-                            projectContext.addQuestion(existingQuestion, groupQuestion.name);
-                        }
-                    });
-
-                    projectContext.logAction('createQuestionGroup', { groupName, questions }, 'ai');
-                    confirmationMessages.push(`Groupe "${groupLabel}" créé avec ${questions.length} questions.`);
-                    break;
-                }
-
-                case 'addCalculatedField': {
-                    const { questionName, label, calculation } = args as {
-                        questionName: string;
-                        label: string;
-                        calculation: string;
-                    };
-                    const calcQuestion = {
-                        uid: uuidv4(),
-                        type: 'calculate',
-                        name: questionName,
-                        label: { fr: label },
-                        calculation
-                    };
-                    projectContext.addQuestion(calcQuestion);
-                    projectContext.logAction('addCalculatedField', { questionName, calculation }, 'ai');
-                    confirmationMessages.push(`Champ calculé "${label}" ajouté.`);
-                    break;
-                }
-
-                case 'setValidationRules': {
-                    const { questionName, rules } = args as {
-                        questionName: string;
-                        rules: { constraint: string; message: string }[];
-                    };
-                    // Pour l'instant, appliquer la première règle
-                    if (rules.length > 0) {
-                        projectContext.updateQuestion(questionName, {
-                            constraint: rules[0].constraint,
-                            constraint_message: { fr: rules[0].message }
-                        });
-                    }
-                    projectContext.logAction('setValidationRules', { questionName, rulesCount: rules.length }, 'ai');
-                    confirmationMessages.push(`${rules.length} règles de validation appliquées à "${questionName}".`);
-                    break;
-                }
-
+                
                 default:
                     console.warn(`Unknown function call: ${name}`);
             }

@@ -1,29 +1,18 @@
 
-import { KoboProject } from '../types';
-
 type LocalizedText = { [lang: string]: string } | string | undefined;
 
 /**
  * Gets the localized text for a given language code.
  * Falls back to 'default' or the first available language if the specified language is not found.
  * This version is hardened to always return a string and never an object, preventing React render errors.
- * Appends cultural context if regionalSettings provided.
  * @param textObj The object containing translations, e.g., { default: 'Name', fr: 'Nom' }
  * @param lang The desired language code, e.g., 'fr'.
- * @param regionalSettings Optional regional settings for cultural adaptation.
  * @returns The localized string, guaranteed to be a string.
  */
-export const getLocalizedText = (textObj: LocalizedText, lang: string, regionalSettings?: KoboProject['regionalSettings']): string => {
+export const getLocalizedText = (textObj: LocalizedText, lang: string): string => {
   // 1. Handle string input directly
   if (typeof textObj === 'string') {
-    let result = textObj;
-    if (regionalSettings?.culturalContext) {
-      result += ` (${regionalSettings.culturalContext})`;
-    }
-    if (regionalSettings?.localTerms && regionalSettings.localTerms.length > 0) {
-      result += ` [Termes locaux: ${regionalSettings.localTerms.join(', ')}]`;
-    }
-    return result;
+    return textObj;
   }
 
   // 2. Handle invalid inputs (null, undefined, not an object, array)
@@ -63,15 +52,8 @@ export const getLocalizedText = (textObj: LocalizedText, lang: string, regionalS
     }
   }
 
-  // 4. Ensure the final result is always a string, then append cultural context
-  let finalResult = typeof result === 'string' ? result : '';
-  if (regionalSettings?.culturalContext) {
-    finalResult += ` (${regionalSettings.culturalContext})`;
-  }
-  if (regionalSettings?.localTerms && regionalSettings.localTerms.length > 0) {
-    finalResult += ` [Termes locaux: ${regionalSettings.localTerms.join(', ')}]`;
-  }
-  return finalResult;
+  // 4. Ensure the final result is always a string.
+  return typeof result === 'string' ? result : '';
 };
 
 

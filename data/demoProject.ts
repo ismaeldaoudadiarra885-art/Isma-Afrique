@@ -112,26 +112,7 @@ export const demoProject: KoboProject = {
       { id: uuidv4(), timestamp: new Date().toISOString(), status: 'synced', data: { nom_enqueteur: 'Awa', date_enquete: '2023-10-25', region: 'sikasso', village: 'Koutiala', age_chef_menage: 38, acces_eau: 'robinet', symptomes_enfants: 'aucun' }},
       { id: uuidv4(), timestamp: new Date().toISOString(), status: 'draft', data: { nom_enqueteur: 'Moussa', date_enquete: '2023-10-26', region: 'bamako', village: 'Medina Coura', age_chef_menage: 52, acces_eau: 'robinet', symptomes_enfants: 'diarrhee', consultation: 'pharmacie' }}
   ],
-  managedUsers: [
-    {
-      id: 'user-admin-1',
-      name: 'Admin User',
-      role: 'admin',
-      accessCode: 'admin123'
-    },
-    {
-      id: 'user-enum-1',
-      name: 'Enumerator User',
-      role: 'enumerator',
-      accessCode: 'enum456'
-    },
-    {
-      id: 'user-manager-1',
-      name: 'Project Manager',
-      role: 'project_manager',
-      accessCode: 'manager789'
-    }
-  ],
+  managedUsers: [],
   questionLibrary: [],
   questionModules: [],
   isRealtimeCoachEnabled: true,
